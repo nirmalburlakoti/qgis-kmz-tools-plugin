@@ -109,12 +109,6 @@ If you encounter any issues or have questions:
 
 This project is licensed under the GNU General Public License v2.0 or later - see the [LICENSE](LICENSE) file for details.
 
-## Author
-
-**Nirmal Burlakoti**
-- Email: snirmal33@yahoo.com
-- GitHub: [@nirmalburlakoti](https://github.com/nirmalburlakoti)
-
 ## Changelog
 
 ### Version 1.0.0
