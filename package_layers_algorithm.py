@@ -23,6 +23,21 @@ import zipfile
 import shutil
 import re
 
+# ---------------------------------------------------------------------------
+# QGIS 4 / Qt6 compatibility helpers for QgsVectorFileWriter enum values.
+# In QGIS 4 (Qt6) the enums are scoped; fall back to QGIS 3 names when the
+# scoped versions are not present.
+# ---------------------------------------------------------------------------
+try:
+    _VFW_NoError = QgsVectorFileWriter.WriterError.NoError
+except AttributeError:
+    _VFW_NoError = QgsVectorFileWriter.NoError  # type: ignore[attr-defined]
+
+try:
+    _VFW_SymbolLayer = QgsVectorFileWriter.SymbologyExport.SymbolLayerSymbology
+except AttributeError:
+    _VFW_SymbolLayer = QgsVectorFileWriter.SymbolLayerSymbology  # type: ignore[attr-defined]
+
 
 class MultipleLayersToKmzAlgorithm(QgsProcessingAlgorithm):
     
@@ -217,16 +232,16 @@ class MultipleLayersToKmzAlgorithm(QgsProcessingAlgorithm):
             
             # Handle styles if requested
             if save_styles:
-                writer_options.symbologyExport = QgsVectorFileWriter.SymbolLayerSymbology
-            
+                writer_options.symbologyExport = _VFW_SymbolLayer
+
             error = QgsVectorFileWriter.writeAsVectorFormatV3(
                 layer,
                 kml_file,
                 QgsProject.instance().transformContext(),
                 writer_options
             )
-            
-            if error[0] != QgsVectorFileWriter.NoError:
+
+            if error[0] != _VFW_NoError:
                 feedback.reportError(f'Error exporting layer {layer.name()}: {error[1]}')
                 return None
             

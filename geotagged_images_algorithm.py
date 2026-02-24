@@ -11,7 +11,6 @@
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
-                       QgsFeatureSink,
                        QgsProcessingException,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterFolderDestination,
@@ -25,7 +24,6 @@ from qgis.core import (QgsProcessing,
                        QgsField,
                        QgsFields,
                        QgsCoordinateReferenceSystem)
-from qgis.PyQt.QtCore import QVariant
 import os
 import shutil
 from PIL import Image

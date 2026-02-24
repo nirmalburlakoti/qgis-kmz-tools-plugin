@@ -11,7 +11,6 @@
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
-                       QgsFeatureSink,
                        QgsProcessingException,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterVectorLayer,
@@ -23,13 +22,37 @@ from qgis.core import (QgsProcessing,
                        QgsCoordinateTransform,
                        QgsCoordinateReferenceSystem,
                        QgsProject)
-from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtCore import QDateTime
 import os
 import shutil
 import zipfile
 import tempfile
 from xml.sax.saxutils import escape
+
+# ---------------------------------------------------------------------------
+# QGIS 4 / Qt6 compatibility: geometry-type integer constants are stable
+# across versions (0 = Point, 1 = Line, 2 = Polygon).
+# ---------------------------------------------------------------------------
+try:
+    from qgis.core import Qgis
+    _GEOM_POINT = Qgis.GeometryType.Point
+    _GEOM_LINE = Qgis.GeometryType.Line
+    _GEOM_POLYGON = Qgis.GeometryType.Polygon
+except AttributeError:
+    # QGIS 3 fallback
+    _GEOM_POINT = QgsWkbTypes.PointGeometry    # type: ignore[attr-defined]
+    _GEOM_LINE = QgsWkbTypes.LineGeometry      # type: ignore[attr-defined]
+    _GEOM_POLYGON = QgsWkbTypes.PolygonGeometry  # type: ignore[attr-defined]
+
+try:
+    _PROCESSING_TYPE_VECTOR = QgsProcessing.SourceType.TypeVectorAnyGeometry
+except AttributeError:
+    _PROCESSING_TYPE_VECTOR = QgsProcessing.TypeVectorAnyGeometry  # type: ignore[attr-defined]
+
+try:
+    _FIELD_TYPE_STRING = QgsProcessingParameterField.DataType.String
+except AttributeError:
+    _FIELD_TYPE_STRING = QgsProcessingParameterField.String  # type: ignore[attr-defined]
 
 class LayerToKmzWithPhotosAlgorithm(QgsProcessingAlgorithm):
     
@@ -69,16 +92,16 @@ class LayerToKmzWithPhotosAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterVectorLayer(
                 self.INPUT_LAYER,
                 self.tr('Input layer'),
-                [QgsProcessing.TypeVectorAnyGeometry]
+                [_PROCESSING_TYPE_VECTOR]
             )
         )
-        
+
         self.addParameter(
             QgsProcessingParameterField(
                 self.PHOTO_FIELD,
                 self.tr('Photo field'),
                 parentLayerParameterName=self.INPUT_LAYER,
-                type=QgsProcessingParameterField.String
+                type=_FIELD_TYPE_STRING
             )
         )
         
@@ -117,44 +140,44 @@ class LayerToKmzWithPhotosAlgorithm(QgsProcessingAlgorithm):
         """Convert geometry to KML coordinates string"""
         if transform:
             geometry.transform(transform)
-        
-        geom_type = geometry.wkbType()
-        
-        if geom_type in [QgsWkbTypes.Point, QgsWkbTypes.PointZ, QgsWkbTypes.Point25D]:
+
+        geom_type = geometry.type()
+
+        if geom_type == _GEOM_POINT:
             point = geometry.asPoint()
             return f"{point.x()},{point.y()},0"
-        elif geom_type in [QgsWkbTypes.LineString, QgsWkbTypes.LineStringZ, QgsWkbTypes.LineString25D]:
+        elif geom_type == _GEOM_LINE:
             coords = []
             for point in geometry.asPolyline():
                 coords.append(f"{point.x()},{point.y()},0")
             return " ".join(coords)
-        elif geom_type in [QgsWkbTypes.Polygon, QgsWkbTypes.PolygonZ, QgsWkbTypes.Polygon25D]:
+        elif geom_type == _GEOM_POLYGON:
             polygon = geometry.asPolygon()
             if polygon:
                 coords = []
                 for point in polygon[0]:  # Outer ring
                     coords.append(f"{point.x()},{point.y()},0")
                 return " ".join(coords)
-        
+
         return ""
-    
+
     def geometry_to_kml_element(self, geometry, transform=None):
         """Convert geometry to appropriate KML element"""
         if transform:
             geometry.transform(transform)
-        
-        geom_type = geometry.wkbType()
+
+        geom_type = geometry.type()
         coordinates = self.geometry_to_kml_coordinates(geometry)
-        
-        if geom_type in [QgsWkbTypes.Point, QgsWkbTypes.PointZ, QgsWkbTypes.Point25D]:
+
+        if geom_type == _GEOM_POINT:
             return f"""      <Point>
         <coordinates>{coordinates}</coordinates>
       </Point>"""
-        elif geom_type in [QgsWkbTypes.LineString, QgsWkbTypes.LineStringZ, QgsWkbTypes.LineString25D]:
+        elif geom_type == _GEOM_LINE:
             return f"""      <LineString>
         <coordinates>{coordinates}</coordinates>
       </LineString>"""
-        elif geom_type in [QgsWkbTypes.Polygon, QgsWkbTypes.PolygonZ, QgsWkbTypes.Polygon25D]:
+        elif geom_type == _GEOM_POLYGON:
             return f"""      <Polygon>
         <outerBoundaryIs>
           <LinearRing>
