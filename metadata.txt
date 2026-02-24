@@ -1,8 +1,8 @@
 [general]
 name=KMZ Tools
 description=This plugin merges multiple vector layers into single kml and exports geotagged images layer into kmz with photos.
-version=1.0.0
-qgisMinimumVersion=3.0
+version=2.0.0
+qgisMinimumVersion=4.0
 author=Nirmal Burlakoti
 email=snirmal33@yahoo.com
 about=
@@ -17,4 +17,5 @@ hasProcessingProvider=yes
 experimental=False
 deprecated=False
 changelog=
+    2.0.0 - Updated plugin to support QGIS 4.x / Qt6
     1.0.0 - Released first version
